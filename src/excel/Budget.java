@@ -13,6 +13,8 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
 public class Budget {
@@ -32,11 +34,15 @@ public class Budget {
             sheet = workbook.getSheetAt(0);
         }
         else {
-            createNewExcelFile();
+            workbook = createNewExcelFile();
         }
 
-        int option = chooseOption();
-        useInput(option);
+        boolean end = false;
+        while (!end){
+            int option = chooseOption();
+            end = useInput(option, workbook, end);
+        }
+
 
         //Writing created excel file
         FileOutputStream out = new FileOutputStream(new File(userHomeFolder, "Desktop\\Budget Results.xlsx"));
@@ -45,7 +51,7 @@ public class Budget {
         System.out.println("Excel file saved");
     }
 
-    public static void createNewExcelFile(){
+    public static XSSFWorkbook createNewExcelFile(){
         //Create a workbook
         workbook = new XSSFWorkbook();
         //create a worksheet inside of workbook
@@ -85,41 +91,93 @@ public class Budget {
         for (int i=0; i< 5; i++){
             sheet.autoSizeColumn(i);
         }
+        return workbook;
     }
 
     //display menu for input
     public static void displayMenu(){
-        System.out.println("Enter a number 1-3 for which action you would like to perform.");
-        System.out.println("1: Enter expenses");
+        System.out.println("\n1: Enter expenses");
         System.out.println("2: View Budget");
         System.out.println("3: Change budget");
-
+        System.out.println("4: Save changes and exit");
     }
 
     //perform actions when each input is entered
     public static int chooseOption(){
         boolean end = false;
         int answer = 0;
-        while (answer <= 3 && answer >= 1){
+        while (answer > 4 || answer < 1){
             displayMenu();
-            System.out.println("Please enter a number 1-3\n");
+            System.out.println("Please enter a number 1-4\n");
             answer = input.nextInt();
         }
         return answer;
     }
 
     //perform actions based on users input
-    public static void useInput(int answer){
+    public static boolean useInput(int answer, XSSFWorkbook workbook, boolean end){
         Scanner input = new Scanner(System.in);
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/mm/yyyy");
         switch (answer){
             case 1:
                 System.out.println("Enter your item/expense");
                 String expense = input.nextLine();
+                System.out.println("Enter the cost");
+                String cost = input.nextLine();
+                System.out.println("Would you like to enter another expense? (y/n)");
+                String again = input.nextLine();
+
+                int i = 0;
+                int j = 0;
+                while (workbook.getSheetAt(0).getRow(i).getCell(j) != null){
+                    i++;
+                }
+                Cell newDate = workbook.getSheetAt(0).getRow(i).createCell(j);
+                Cell newItem = workbook.getSheetAt(0).getRow(i).createCell(j+1);
+                Cell newCost = workbook.getSheetAt(0).getRow(i).createCell(j+2);
+
+
+                LocalDateTime now = LocalDateTime.now();
+               String currentTime = dtf.format(now);
+               newDate.setCellValue(currentTime);                      //place current date in new row for expense
+                newItem.setCellValue(expense);
+                newCost.setCellValue(cost);                         //enter new values
+
+
+                if (again.equals("y") || again.equals("Y")){            //recursive function to keep entering new expenses quicker
+                    useInput(1, workbook, end);
+                }
+                end = false;
                 break;
             case 2:
-                System.out.println("Your budget is: " + workbook.getSheetAt(0).getRow(1).getCell(9);
+                System.out.println("Your budget is: " + workbook.getSheetAt(0).getRow(1).getCell(4));
+                if (workbook.getSheetAt(0).getRow(1).getCell(4) == null)
+                    System.out.println("You have currently have zero expenses.");
+                else{
+                    double budget = Double.parseDouble(workbook.getSheetAt(0).getRow(1).getCell(4).toString());
+                    double total = Double.parseDouble(workbook.getSheetAt(0).getRow(1).getCell(3).toString());
+                    double difference = budget - total;
+                    if (difference >= 0){
+                        System.out.println("You have " + difference + " money left for your budget.");
+                    }
+                    else{
+                        double money = -1 * difference;
+                        System.out.println("You are " + money + " over your budget.");
+                    }
+                }
+                end = false;
+                break;
             case 3:
+                System.out.println("What would you like your new budget to be? ");
+                double newBudget = input.nextDouble();
+                workbook.getSheetAt(0).getRow(1).getCell(4).setCellValue(newBudget);
+                System.out.println("Your budget has been changed to: " + newBudget);
+                end = false;
+                break;
+            case 4:
+                end = true;
                 break;
         }
+        return end;
     }
 }
