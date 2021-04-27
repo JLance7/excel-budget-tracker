@@ -13,6 +13,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -66,21 +67,23 @@ public class Budget {
         style.setFont(font);
         //create a row object
         row = sheet.createRow(0);
+
         //create cells and set values
         Cell cell0 = row.createCell(0);
         Cell cell1 = row.createCell(1);
         Cell cell2 = row.createCell(2);
         Cell cell3 = row.createCell(3);
         Cell cell4 = row.createCell(4);
-
+        row.setRowStyle(style);
         cell0.setCellValue("Date");
         cell1.setCellValue("Item/Expense");
         cell2.setCellValue("Money Spent ($)");
         cell3.setCellValue("Total Spent ($)");
         cell4.setCellValue("Budget");
-
+        row.setRowStyle(style);
         System.out.println("What is your budget?");     //set budget cell
         double budget = input.nextDouble();
+
         row = sheet.createRow(1);
         Cell cell5 = row.createCell(0);
         Cell cell6 = row.createCell(1);
@@ -90,6 +93,8 @@ public class Budget {
         cell9.setCellValue(budget);
 
         //style cells
+        font.setBold(false);
+        style.setFont(font);
         row.setRowStyle(style);
         //auto style columns
         for (int i=0; i< 5; i++){
@@ -111,9 +116,14 @@ public class Budget {
         boolean end = false;
         int answer = 0;
         while (answer > 4 || answer < 1){
-            displayMenu();
-            System.out.println("Please enter a number 1-4\n");
-            answer = input.nextInt();
+            try{
+                displayMenu();
+                System.out.println("Please enter a number 1-4\n");
+                answer = input.nextInt();
+            } catch (Exception e){
+                System.out.println("Please enter a number 1-4");
+                input.next();
+            }
         }
         return answer;
     }
@@ -153,20 +163,21 @@ public class Budget {
                     i++;
                 }
                 row = sheet.createRow(i);
+                for (int m=0; m< 5; m++){
+                    sheet.autoSizeColumn(m);
+                }
                 Cell newDate = workbook.getSheetAt(0).getRow(i).createCell(j);
                 Cell newItem = workbook.getSheetAt(0).getRow(i).createCell(j+1);
                 Cell newCost = workbook.getSheetAt(0).getRow(i).createCell(j+2);
 
-               newDate.setCellValue(dateFormat.format(new Date()));                      //place current date in new row for expense
+                newDate.setCellValue(dateFormat.format(new Date()));                      //place current date in new row for expense
                 newItem.setCellValue(expense);
                 newCost.setCellValue(cost);                         //enter new values
 
                 newDate.setCellStyle(style);                  //style new cells
                 newItem.setCellStyle(style);
                 newCost.setCellStyle(style);
-                for (int k=0; k< 5; k++){
-                    sheet.autoSizeColumn(k);
-                }
+
                 int z = 0;
                 while (workbook.getSheetAt(0).getRow(z) != null){
                     z++;
@@ -174,6 +185,11 @@ public class Budget {
                 Integer p = z;
                 String strFormula= "SUM(C2:C" + p.toString() + ")";
                 workbook.getSheetAt(0).getRow(1).getCell(3).setCellFormula(strFormula);
+                row = sheet.getRow(1);
+                row.setRowStyle(style);
+                for (int k=0; k< 5; k++){
+                    sheet.autoSizeColumn(k);
+                }
                 end = false;
                 break;
             case 2:
@@ -189,14 +205,19 @@ public class Budget {
                     System.out.println("You have currently have zero expenses.");
                 else{
                     double budget = (workbook.getSheetAt(0).getRow(1).getCell(4).getNumericCellValue());
-                    double total = (workbook.getSheetAt(0).getRow(1).getCell(3).getNumericCellValue());
+                    Cell cell = (workbook.getSheetAt(0).getRow(1).getCell(3));
+                    FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+                    CellValue cellValue = evaluator.evaluate(cell);
+                    double total = cellValue.getNumberValue();
                     double difference = budget - total;
+                    System.out.println("Your total expenses is: $" + cellValue.getNumberValue());
+                    DecimalFormat decimalFormat = new DecimalFormat("#.00");
                     if (difference >= 0){
-                        System.out.println("You have $" + difference + " money left for your budget.");
+                        System.out.println("You have $" + decimalFormat.format(difference) + " money left for your budget.");
                     }
                     else{
                         double money = -1 * difference;
-                        System.out.println("You are $" + money + " over your budget.");
+                        System.out.println("You are $" + decimalFormat.format(money) + " over your budget.");
                     }
                 }
                 end = false;
