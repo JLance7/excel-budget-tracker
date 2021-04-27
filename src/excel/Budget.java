@@ -4,17 +4,16 @@ package excel;
 //This is a program that uses the Apache POI library to ask the get user input for expenses they will enter and be put into
 //an excel file on their computer.
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
-import java.time.LocalDateTime;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.Scanner;
 
 public class Budget {
@@ -117,35 +116,40 @@ public class Budget {
     //perform actions based on users input
     public static boolean useInput(int answer, XSSFWorkbook workbook, boolean end){
         Scanner input = new Scanner(System.in);
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/mm/yyyy");
+        DateFormat dateFormat = new SimpleDateFormat("MM-dd-yyyy");
+        CellStyle style = workbook.createCellStyle();
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        int i = 1;
+        int j = 0;
         switch (answer){
             case 1:
                 System.out.println("Enter your item/expense");
                 String expense = input.nextLine();
                 System.out.println("Enter the cost");
                 String cost = input.nextLine();
-                System.out.println("Would you like to enter another expense? (y/n)");
-                String again = input.nextLine();
 
-                int i = 0;
-                int j = 0;
-                while (workbook.getSheetAt(0).getRow(i).getCell(j) != null){
+
+                while (workbook.getSheetAt(0).getRow(i) != null){
                     i++;
                 }
+                row = sheet.createRow(i);
+
+
                 Cell newDate = workbook.getSheetAt(0).getRow(i).createCell(j);
                 Cell newItem = workbook.getSheetAt(0).getRow(i).createCell(j+1);
                 Cell newCost = workbook.getSheetAt(0).getRow(i).createCell(j+2);
 
 
-                LocalDateTime now = LocalDateTime.now();
-               String currentTime = dtf.format(now);
-               newDate.setCellValue(currentTime);                      //place current date in new row for expense
+               newDate.setCellValue(dateFormat.format(new Date()));                      //place current date in new row for expense
                 newItem.setCellValue(expense);
                 newCost.setCellValue(cost);                         //enter new values
 
-
-                if (again.equals("y") || again.equals("Y")){            //recursive function to keep entering new expenses quicker
-                    useInput(1, workbook, end);
+                newDate.setCellStyle(style);                  //style new cells
+                newItem.setCellStyle(style);
+                newCost.setCellStyle(style);
+                for (int k=0; k< 5; k++){
+                    sheet.autoSizeColumn(k);
                 }
                 end = false;
                 break;
@@ -154,8 +158,8 @@ public class Budget {
                 if (workbook.getSheetAt(0).getRow(1).getCell(4) == null)
                     System.out.println("You have currently have zero expenses.");
                 else{
-                    double budget = Double.parseDouble(workbook.getSheetAt(0).getRow(1).getCell(4).toString());
-                    double total = Double.parseDouble(workbook.getSheetAt(0).getRow(1).getCell(3).toString());
+                    double budget = (workbook.getSheetAt(0).getRow(1).getCell(4).getNumericCellValue());
+                    double total = (workbook.getSheetAt(0).getRow(1).getCell(3).getNumericCellValue());
                     double difference = budget - total;
                     if (difference >= 0){
                         System.out.println("You have " + difference + " money left for your budget.");
